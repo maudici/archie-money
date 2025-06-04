@@ -78,8 +78,8 @@ export const DEFAULT_VALUES = {
   retirementAge: 65,
   monthlyTakeHome: 4000,
   monthlyExpenses: 3000,
-  monthlyInvestments: 0,
-  currentSavings: 0,
+  monthlyInvestments: 100,
+  currentSavings: 10000,
   highInterestDebt: false,
   retirementState: 'Not Sure/Other',
 } as const;

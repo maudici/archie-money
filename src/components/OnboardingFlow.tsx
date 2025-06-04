@@ -39,7 +39,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
     id: 'retirementAge',
     title: 'When do you want to retire?',
     inputType: 'slider',
-    min: 55,
+    min: 45,
     max: 75,
     step: 1,
     suffix: ' years old'
@@ -69,11 +69,10 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'monthlyInvestments',
     title: 'How much do you invest per month?',
-    subtitle: '(e.g., index funds, 401(k), IRAs)',
     tooltip: 'Include any recurring transfers to brokerage or retirement accounts (pre-tax 401(k), Roth IRA, etc.).',
     inputType: 'slider',
     min: 0,
-    max: 20000,
+    max: 10000,
     step: 100,
     prefix: '$',
     suffix: ' / month'
@@ -91,8 +90,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'highInterestDebt',
     title: 'Do you currently have any debt with an interest rate above 6% APR?',
-    subtitle: '(credit card, student loan, car loan)',
-    tooltip: 'High-interest debt—anything above 6% APR—should usually be paid off before investing heavily.',
+    tooltip: 'Includes credit card, student loans, car loan, etc.',
     inputType: 'toggle'
   },
   {
@@ -150,7 +148,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Progress Bar */}
       <div className="w-full h-1 bg-input-bg">
         <div 
-          className="h-full bg-primary-teal transition-all duration-300"
+          className="h-full bg-primary-blue transition-all duration-300"
           style={{ width: `${((currentStep + 1) / ONBOARDING_STEPS.length) * 100}%` }}
         />
       </div>
@@ -172,7 +170,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       {/* Question Card */}
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
-          <div className="card p-8 slide-in-right">
+          <div className="card p-8 slide-in-right backdrop-blur-glass">
             {/* Question */}
             <div className="text-center mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-text-white mb-4">
@@ -182,7 +180,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <p className="text-lg text-text-secondary mb-4">{step.subtitle}</p>
               )}
               {step.tooltip && (
-                <div className="flex items-center justify-center space-x-2 text-text-secondary">
+                <div className="flex items-center justify-center space-x-2 text-text-muted">
                   <Info className="w-4 h-4" />
                   <p className="text-sm">{step.tooltip}</p>
                 </div>
@@ -231,7 +229,22 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             )}
 
             {/* Navigation */}
-            <div className="flex justify-end">
+            <div className="flex justify-between">
+              {/* Back Button - only show after first step */}
+              {currentStep > 0 && (
+                <button
+                  onClick={prevStep}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  <span>Back</span>
+                </button>
+              )}
+              
+              {/* Spacer when no back button */}
+              {currentStep === 0 && <div />}
+              
+              {/* Next Button */}
               <button
                 onClick={nextStep}
                 className="btn-primary flex items-center space-x-2"
@@ -265,12 +278,16 @@ function SliderInput({
   prefix?: string
   suffix?: string
 }) {
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-US').format(num)
+  }
+
   return (
     <div className="space-y-6">
       {/* Value Display */}
       <div className="text-center">
         <span className="text-4xl font-bold text-text-white">
-          {prefix}{value.toLocaleString()}{suffix}
+          {prefix}{formatNumber(value)}{suffix}
         </span>
       </div>
 
@@ -280,7 +297,7 @@ function SliderInput({
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={Math.min(value, max)}
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full"
       />
@@ -289,8 +306,8 @@ function SliderInput({
       <div className="flex justify-center">
         <input
           type="number"
+          inputMode="numeric"
           min={min}
-          max={max}
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
@@ -315,8 +332,8 @@ function ToggleInput({
         onClick={() => onChange(false)}
         className={`px-8 py-4 rounded-lg font-semibold transition-all ${
           !value 
-            ? 'bg-primary-teal text-white' 
-            : 'bg-input-bg text-text-secondary hover:text-text-white'
+            ? 'bg-primary-blue text-white shadow-lg' 
+            : 'bg-input-bg text-text-secondary hover:text-text-white border border-border-color'
         }`}
       >
         No
@@ -325,8 +342,8 @@ function ToggleInput({
         onClick={() => onChange(true)}
         className={`px-8 py-4 rounded-lg font-semibold transition-all ${
           value 
-            ? 'bg-primary-teal text-white' 
-            : 'bg-input-bg text-text-secondary hover:text-text-white'
+            ? 'bg-primary-blue text-white shadow-lg' 
+            : 'bg-input-bg text-text-secondary hover:text-text-white border border-border-color'
         }`}
       >
         Yes

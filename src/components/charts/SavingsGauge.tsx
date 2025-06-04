@@ -20,9 +20,9 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
 
   // Determine color based on savings rate thresholds
   const getColor = () => {
-    if (savingsRate < 0.10) return '#F87171' // Red
+    if (savingsRate < 0.10) return '#EF4444' // Red
     if (savingsRate < 0.20) return '#F59E0B' // Orange  
-    return '#2CB67D' // Teal
+    return '#10B981' // Green
   }
 
   const getStatus = () => {
@@ -38,13 +38,12 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
         <svg
           height={radius + strokeWidth}
           width={(radius + strokeWidth) * 2}
-          className="transform -rotate-180"
         >
           {/* Background arc */}
           <path
             d={`M ${strokeWidth} ${radius + strokeWidth} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${(radius + strokeWidth) * 2 - strokeWidth} ${radius + strokeWidth}`}
             fill="none"
-            stroke="#2A2E3A"
+            stroke="#243354"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
@@ -63,7 +62,7 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
         </svg>
         
         {/* Center text */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center transform rotate-180">
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
           <div className="text-3xl font-bold text-text-white">
             {formatPercentage(savingsRate)}
           </div>
@@ -90,7 +89,7 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
             <span className="text-text-secondary">10-20%</span>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-primary-teal"></div>
+            <div className="w-3 h-3 rounded-full bg-success-green"></div>
             <span className="text-text-secondary">20%+</span>
           </div>
         </div>
