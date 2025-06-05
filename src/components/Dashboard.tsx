@@ -166,7 +166,7 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
               <div>
                 <h3 className="font-semibold text-white">High-Interest Debt Detected</h3>
                 <p className="text-sm text-text-primary">
-                  You have debt &gt; 6% APR. Pay it off before investing. See recommended steps below.
+                  It looks like you're carrying debt with an APR above 6%. It's generally wiser to pay down that high-interest debt before directing extra money into investments.
                 </p>
               </div>
             </div>
