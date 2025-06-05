@@ -15,6 +15,7 @@ export interface FinancialProjection {
   futureValueContributions: number;
   totalRetirementBalance: number;
   annualWithdrawalBeforeTax: number;
+  monthlyWithdrawalBeforeTax: number;
   annualWithdrawalAfterTax: number;
   monthlyWithdrawalAfterTax: number;
   currentSavingsRate: number;

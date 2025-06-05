@@ -307,8 +307,40 @@ function SliderInput({
   suffix?: string
   stepIndex: number
 }) {
+  const [inputValue, setInputValue] = useState('')
+  const [isFocused, setIsFocused] = useState(false)
+
+  useEffect(() => {
+    if (!isFocused) {
+      setInputValue(formatNumber(value))
+    }
+  }, [value, isFocused])
+
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('en-US').format(num)
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputStr = e.target.value
+    setInputValue(inputStr)
+    
+    // Remove commas and convert to number
+    const numericValue = Number(inputStr.replace(/,/g, ''))
+    if (!isNaN(numericValue)) {
+      onChange(numericValue)
+    }
+  }
+
+  const handleInputBlur = () => {
+    setIsFocused(false)
+    // Format the final value with commas
+    setInputValue(formatNumber(value))
+  }
+
+  const handleInputFocus = () => {
+    setIsFocused(true)
+    // Show raw number without formatting for easier editing
+    setInputValue(value.toString())
   }
 
   // Apply different slider heights based on question group
@@ -337,12 +369,12 @@ function SliderInput({
       {/* Manual Input */}
       <div className="flex justify-center">
         <input
-          type="number"
+          type="text"
           inputMode="numeric"
-          min={min}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onBlur={handleInputBlur}
           className="input-field w-48 text-center text-lg"
           placeholder="Enter amount"
         />

@@ -89,21 +89,21 @@ export const HYSA_ACCOUNTS = [
     name: 'Ally Bank Online Savings',
     apy: 4.15,
     features: ['No minimum balance', 'No fees', 'FDIC insured'],
-    url: 'https://archie.money/affiliates/ally',
+    url: 'https://www.ally.com',
     logo: '/icons/ally.jpg'
   },
   {
     name: 'Marcus by Goldman Sachs',
     apy: 4.30,
     features: ['No fees', 'Easy online access', 'FDIC insured'],
-    url: 'https://archie.money/affiliates/marcus',
+    url: 'https://www.marcus.com/us/en',
     logo: '/icons/marcus.png'
   },
   {
     name: 'Capital One 360 Performance Savings',
     apy: 4.20,
     features: ['No fees', 'Mobile banking', 'FDIC insured'],
-    url: 'https://archie.money/affiliates/capital-one',
+    url: 'https://www.capitalone.com/bank/savings-accounts/online-performance-savings-account/',
     logo: '/icons/capital-one.png'
   },
 ] as const;
@@ -113,21 +113,21 @@ export const BROKERAGE_PLATFORMS = [
     name: 'Robinhood',
     description: 'Zero-commission trading, intuitive mobile UI',
     features: ['Commission-free trades', 'Fractional shares', 'Mobile-first'],
-    url: 'https://archie.money/affiliates/robinhood',
+    url: 'http://robinhood.com/',
     logo: '/icons/robinhood.png'
   },
   {
     name: 'Fidelity',
     description: 'Zero-fee index funds, robust research tools',
     features: ['No expense ratio funds', 'Research tools', 'No minimums'],
-    url: 'https://archie.money/affiliates/fidelity',
+    url: 'https://www.fidelity.com',
     logo: '/icons/fidelity.jpeg'
   },
   {
     name: 'Charles Schwab',
     description: 'Low costs, fractional shares, strong customer support',
     features: ['Low fees', 'Fractional shares', '24/7 support'],
-    url: 'https://archie.money/affiliates/schwab',
+    url: 'https://www.schwab.com',
     logo: '/icons/schwab.png'
   },
 ] as const;
@@ -137,21 +137,21 @@ export const PFM_APPS = [
     name: 'Copilot.Money',
     description: 'Modern, AI-driven PFM with net-worth tracking',
     features: ['AI insights', 'Net worth tracking', 'Beautiful UI'],
-    url: 'https://archie.money/pfm/copilot',
+    url: 'https://copilot.money',
     logo: '/icons/copilot.png'
   },
   {
     name: 'Monarch Money',
     description: 'All-in-one budgeting + goal tracking',
     features: ['Goal tracking', 'Budgeting tools', 'Investment tracking'],
-    url: 'https://archie.money/pfm/monarch',
+    url: 'https://www.monarchmoney.com',
     logo: '/icons/monarch.png'
   },
   {
     name: 'You Need A Budget (YNAB)',
     description: 'Zero-based budgeting methodology',
     features: ['Zero-based budgeting', 'Educational resources', 'Goal setting'],
-    url: 'https://archie.money/pfm/ynab',
+    url: 'https://www.ynab.com',
     logo: '/icons/ynab.png'
   },
 ] as const; 

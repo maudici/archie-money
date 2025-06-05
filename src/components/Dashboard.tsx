@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { ArrowLeft, TrendingUp, DollarSign, Target, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
@@ -12,7 +12,7 @@ import {
   getSavingsRateColor,
   getSavingsRateStatus
 } from '@/utils/financial-calculations'
-import { HYSA_ACCOUNTS, BROKERAGE_PLATFORMS, PFM_APPS } from '@/data/financial-data'
+import { HYSA_ACCOUNTS, BROKERAGE_PLATFORMS, PFM_APPS, FINANCIAL_ASSUMPTIONS } from '@/data/financial-data'
 import type { UserInputs } from '@/types'
 
 interface DashboardProps {
@@ -21,12 +21,12 @@ interface DashboardProps {
 }
 
 // Constants for calculations
-const ANNUAL_RETURN_RATE = 0.06
 const INFLATION_RATE = 0.03
 
 // Generate projection data for chart
 function generateProjectionData(inputs: UserInputs) {
   const { currentAge, retirementAge, currentSavings, monthlyInvestments } = inputs
+  const { annual_return } = FINANCIAL_ASSUMPTIONS
   const data = []
   
   let currentBalance = currentSavings
@@ -40,7 +40,7 @@ function generateProjectionData(inputs: UserInputs) {
     if (age < retirementAge) {
       // Add monthly contributions for the year and apply annual growth
       const yearlyContributions = monthlyInvestments * 12
-      currentBalance = (currentBalance + yearlyContributions) * (1 + ANNUAL_RETURN_RATE)
+      currentBalance = (currentBalance + yearlyContributions) * (1 + annual_return)
     }
   }
   
@@ -72,6 +72,43 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
   const [additionalInvestment, setAdditionalInvestment] = useState(defaultAdditionalInvestment)
   const [expandedAccordion, setExpandedAccordion] = useState<string | null>(null)
   const [showEducationalContent, setShowEducationalContent] = useState(false)
+  
+  // For handling comma-formatted input
+  const [investmentInputValue, setInvestmentInputValue] = useState('')
+  const [isInvestmentFocused, setIsInvestmentFocused] = useState(false)
+
+  useEffect(() => {
+    if (!isInvestmentFocused) {
+      setInvestmentInputValue(formatNumber(additionalInvestment))
+    }
+  }, [additionalInvestment, isInvestmentFocused])
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-US').format(num)
+  }
+
+  const handleInvestmentInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputStr = e.target.value
+    setInvestmentInputValue(inputStr)
+    
+    // Remove commas and convert to number
+    const numericValue = Number(inputStr.replace(/,/g, ''))
+    if (!isNaN(numericValue)) {
+      setAdditionalInvestment(numericValue)
+    }
+  }
+
+  const handleInvestmentInputBlur = () => {
+    setIsInvestmentFocused(false)
+    // Format the final value with commas
+    setInvestmentInputValue(formatNumber(additionalInvestment))
+  }
+
+  const handleInvestmentInputFocus = () => {
+    setIsInvestmentFocused(true)
+    // Show raw number without formatting for easier editing
+    setInvestmentInputValue(additionalInvestment.toString())
+  }
 
   const projection = calculateRetirementProjection(inputs)
   const projectionData = generateProjectionData(inputs)
@@ -153,13 +190,13 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
 
           <div className="modern-card p-4">
             <h2 className="text-xl font-semibold text-text-white mb-1">Retirement Income</h2>
-            <p className="text-xs text-text-secondary mb-3">4% Rule</p>
+            <p className="text-xs text-text-secondary mb-3">4% Rule, Pre-Tax</p>
             <p className="text-3xl font-bold mb-1" style={{ color: '#3B82F6' }}>
-              {formatCurrency(projection.monthlyWithdrawalAfterTax)}<span className="text-base text-text-secondary">/month</span>
+              {formatCurrency(projection.monthlyWithdrawalBeforeTax)}<span className="text-base text-text-secondary">/month</span>
             </p>
             {yearsUntilRetirement > 0 && (
               <p className="text-sm text-gray-400 italic">
-                ≈ {formatCurrency(presentValueMonthlyIncome)}/month in today's dollars
+                ≈ {formatCurrency(calculatePresentValue(projection.monthlyWithdrawalBeforeTax, yearsUntilRetirement))}/month in today's dollars
               </p>
             )}
           </div>
@@ -226,7 +263,7 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
           <div className="xl:col-span-2 space-y-4">
             {/* Breakdown */}
             <div className="modern-card p-4">
-              <h2 className="text-xl font-semibold text-text-white mb-4">Retirement Projection Breakdown</h2>
+              <h2 className="text-xl font-semibold text-text-white mb-4">Retirement Breakdown</h2>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-border-color">
@@ -241,6 +278,26 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
                     {formatCurrency(projection.futureValueContributions)}
                   </span>
                 </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-text-white font-semibold">Total nest-egg</span>
+                  <span className="text-primary-blue font-bold text-lg">
+                    {formatCurrency(projection.totalRetirementBalance)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Projection Breakdown */}
+            <div className="modern-card p-4">
+                             <h2 className="text-xl font-semibold text-text-white mb-4">Monthly Breakdown</h2>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-border-color">
+                  <span className="text-text-secondary">Gross monthly (4% rule)</span>
+                  <span className="text-text-white font-semibold">
+                    {formatCurrency(projection.monthlyWithdrawalBeforeTax)}
+                  </span>
+                </div>
                 <div className="flex justify-between items-center py-2 border-b border-border-color">
                   <span className="text-text-secondary">Total tax rate</span>
                   <span className="text-text-white font-semibold">
@@ -248,9 +305,9 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-text-white font-semibold">Total nest-egg</span>
+                  <span className="text-text-white font-semibold">Net monthly (post-tax)</span>
                   <span className="text-primary-blue font-bold text-lg">
-                    {formatCurrency(projection.totalRetirementBalance)}
+                    {formatCurrency(projection.monthlyWithdrawalAfterTax)}
                   </span>
                 </div>
               </div>
@@ -271,12 +328,14 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-secondary">$</span>
                     <input
-                      type="number"
+                      type="text"
                       inputMode="numeric"
-                      value={additionalInvestment || ''}
-                      onChange={(e) => setAdditionalInvestment(Number(e.target.value) || 0)}
+                      value={investmentInputValue}
+                      onChange={handleInvestmentInputChange}
+                      onFocus={handleInvestmentInputFocus}
+                      onBlur={handleInvestmentInputBlur}
                       className="input-field w-full pl-8"
-                      placeholder={defaultAdditionalInvestment.toString()}
+                      placeholder={formatNumber(defaultAdditionalInvestment)}
                     />
                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary">/mo</span>
                   </div>

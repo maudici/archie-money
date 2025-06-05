@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: 'Archie.Money - Retirement Projection Made Simple',
   description: 'Answer a few questions, get a clear roadmap for your retirement with Archie.Money. Calculate your projected retirement income and get personalized recommendations.',
   keywords: 'retirement planning, financial planning, 4% rule, retirement calculator, investment advice',
+  icons: {
+    icon: '/ArchieLogo.png',
+    shortcut: '/ArchieLogo.png',
+    apple: '/ArchieLogo.png',
+  },
   openGraph: {
     title: 'Archie.Money - Retirement Projection Made Simple',
     description: 'Answer a few questions, get a clear roadmap for your retirement with Archie.Money.',

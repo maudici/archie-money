@@ -29,8 +29,9 @@ export function calculateRetirementProjection(inputs: UserInputs): FinancialProj
   // Total retirement balance
   const totalRetirementBalance = futureValueCurrentSavings + futureValueContributions;
   
-  // 4% rule withdrawal
+  // 4% rule withdrawal (gross amount)
   const annualWithdrawalBeforeTax = totalRetirementBalance * withdrawal_rate;
+  const monthlyWithdrawalBeforeTax = annualWithdrawalBeforeTax / 12;
   
   // Tax calculations
   const federalTaxRate = calculateFederalTaxRate(annualWithdrawalBeforeTax);
@@ -52,6 +53,7 @@ export function calculateRetirementProjection(inputs: UserInputs): FinancialProj
     futureValueContributions,
     totalRetirementBalance,
     annualWithdrawalBeforeTax,
+    monthlyWithdrawalBeforeTax,
     annualWithdrawalAfterTax,
     monthlyWithdrawalAfterTax,
     currentSavingsRate,
