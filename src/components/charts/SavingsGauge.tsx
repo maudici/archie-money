@@ -10,12 +10,14 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
   // Convert savings rate to percentage for display
   const percentage = Math.min(Math.max(savingsRate * 100, 0), 100)
   
-  // Calculate the arc path for the gauge
+  // Calculate the arc path for the gauge (bottom half circle)
   const radius = 80
   const strokeWidth = 12
-  const normalizedRadius = radius - strokeWidth * 2
-  const circumference = normalizedRadius * Math.PI // Half circle
+  const centerX = radius + strokeWidth
+  const centerY = radius + strokeWidth
+  const circumference = Math.PI * radius // Half circle circumference
   const strokeDasharray = `${circumference} ${circumference}`
+  // Start from 0% (left) and fill to percentage (right)
   const strokeDashoffset = circumference - (percentage / 100) * circumference
 
   // Determine color based on savings rate thresholds
@@ -36,12 +38,12 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
       {/* Semi-circular gauge */}
       <div className="relative">
         <svg
-          height={radius + strokeWidth}
-          width={(radius + strokeWidth) * 2}
+          height={centerY + strokeWidth}
+          width={(centerX) * 2}
         >
           {/* Background arc */}
           <path
-            d={`M ${strokeWidth} ${radius + strokeWidth} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${(radius + strokeWidth) * 2 - strokeWidth} ${radius + strokeWidth}`}
+            d={`M ${strokeWidth} ${centerY} A ${radius} ${radius} 0 0 1 ${centerX * 2 - strokeWidth} ${centerY}`}
             fill="none"
             stroke="#243354"
             strokeWidth={strokeWidth}
@@ -50,7 +52,7 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
           
           {/* Progress arc */}
           <path
-            d={`M ${strokeWidth} ${radius + strokeWidth} A ${normalizedRadius} ${normalizedRadius} 0 0 1 ${(radius + strokeWidth) * 2 - strokeWidth} ${radius + strokeWidth}`}
+            d={`M ${strokeWidth} ${centerY} A ${radius} ${radius} 0 0 1 ${centerX * 2 - strokeWidth} ${centerY}`}
             fill="none"
             stroke={getColor()}
             strokeWidth={strokeWidth}
@@ -63,7 +65,7 @@ export default function SavingsGauge({ savingsRate }: SavingsGaugeProps) {
         
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-3xl font-bold text-text-white">
+          <div className="text-3xl font-bold" style={{ color: '#3B82F6' }}>
             {formatPercentage(savingsRate)}
           </div>
           <div className="text-sm text-text-secondary mt-1">

@@ -16,7 +16,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       {/* Simple Header */}
       <header className="px-6 py-6">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
+        <div className="flex items-center justify-center max-w-6xl mx-auto">
           <div className="flex items-center space-x-3">
             <Image 
               src="/ArchieLogo.png" 
@@ -36,13 +36,12 @@ export default function HomePage() {
           <div className="animate-fade-in">
             {/* Main Headline */}
             <h1 className="text-5xl sm:text-7xl font-bold text-text-white mb-6 leading-tight">
-              See if You're Saving Enough
-              <span className="block gradient-text">for Tomorrow</span>
+              Your financial future, <span className="text-primary-blue">clearly laid out</span>
             </h1>
             
             {/* Subheadline */}
-            <p className="text-xl sm:text-2xl text-text-secondary mb-12 font-light">
-              No Guilt Attached
+            <p className="text-xl sm:text-2xl text-text-secondary mb-12 font-light italic">
+              No judgment. 100% private.
             </p>
 
             {/* Single CTA Button */}
@@ -50,13 +49,17 @@ export default function HomePage() {
               onClick={() => setShowOnboarding(true)}
               className="btn-primary text-lg px-12 py-4 shadow-glow"
             >
-              <span>Get Started</span>
+              <span>Show Me My Estimate</span>
               <ArrowRight className="w-6 h-6 ml-2 inline" />
             </button>
 
             {/* Simple subtitle */}
             <p className="text-sm text-text-muted mt-8 max-w-lg mx-auto">
-              Answer 8 quick questions to see your projected retirement income and get personalized recommendations.
+              Answer a few easy questions to see how your choices today impact your retirement tomorrow.
+            </p>
+            
+            <p className="text-xs text-text-muted mt-4 max-w-lg mx-auto">
+              Archie doesn't store any data, your inputs vanish once you close the session.
             </p>
           </div>
         </div>

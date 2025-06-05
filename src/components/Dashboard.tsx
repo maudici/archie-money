@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { ArrowLeft, TrendingUp, DollarSign, Target, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts'
 import { 
   calculateRetirementProjection, 
   calculateWhatIfScenario,
@@ -12,19 +14,72 @@ import {
 } from '@/utils/financial-calculations'
 import { HYSA_ACCOUNTS, BROKERAGE_PLATFORMS, PFM_APPS } from '@/data/financial-data'
 import type { UserInputs } from '@/types'
-import SavingsGauge from './charts/SavingsGauge'
 
 interface DashboardProps {
   inputs: UserInputs
   onBack: () => void
 }
 
+// Constants for calculations
+const ANNUAL_RETURN_RATE = 0.06
+const INFLATION_RATE = 0.03
+
+// Generate projection data for chart
+function generateProjectionData(inputs: UserInputs) {
+  const { currentAge, retirementAge, currentSavings, monthlyInvestments } = inputs
+  const data = []
+  
+  let currentBalance = currentSavings
+  
+  for (let age = currentAge; age <= retirementAge; age++) {
+    data.push({
+      age,
+      balance: Math.round(currentBalance)
+    })
+    
+    if (age < retirementAge) {
+      // Add monthly contributions for the year and apply annual growth
+      const yearlyContributions = monthlyInvestments * 12
+      currentBalance = (currentBalance + yearlyContributions) * (1 + ANNUAL_RETURN_RATE)
+    }
+  }
+  
+  return data
+}
+
+// Calculate present value with inflation
+function calculatePresentValue(futureValue: number, yearsInFuture: number): number {
+  return futureValue / Math.pow(1 + INFLATION_RATE, yearsInFuture)
+}
+
+// Custom tooltip for chart
+function CustomTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card-bg border border-border-color rounded-lg p-3 shadow-lg">
+        <p className="text-text-white font-semibold">
+          Age {label}: {formatCurrency(payload[0].value)}
+        </p>
+      </div>
+    )
+  }
+  return null
+}
+
 export default function Dashboard({ inputs, onBack }: DashboardProps) {
   // Use $100 as default additional investment
-  const [additionalInvestment, setAdditionalInvestment] = useState(100)
+  const defaultAdditionalInvestment = 100
+  const [additionalInvestment, setAdditionalInvestment] = useState(defaultAdditionalInvestment)
   const [expandedAccordion, setExpandedAccordion] = useState<string | null>(null)
+  const [showEducationalContent, setShowEducationalContent] = useState(false)
 
   const projection = calculateRetirementProjection(inputs)
+  const projectionData = generateProjectionData(inputs)
+  
+  // Calculate inflation-adjusted values
+  const yearsUntilRetirement = inputs.retirementAge - inputs.currentAge
+  const presentValueNestEgg = calculatePresentValue(projection.totalRetirementBalance, yearsUntilRetirement)
+  const presentValueMonthlyIncome = calculatePresentValue(projection.monthlyWithdrawalAfterTax, yearsUntilRetirement)
   
   // Calculate what happens with additional investment
   const enhancedInputs = {
@@ -41,26 +96,32 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
   return (
     <div className="min-h-screen bg-primary-bg">
       {/* Header */}
-      <header className="px-4 py-6 border-b border-border-color">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="flex items-center space-x-2 text-text-secondary hover:text-text-white transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to questions</span>
-          </button>
-          
-          <h1 className="text-2xl font-bold text-text-white">Archie's analysis</h1>
-          
-          <div className="w-24" /> {/* Spacer for center alignment */}
+      <header className="px-4 py-6 border-b border-border-color relative">
+        <button
+          onClick={onBack}
+          className="absolute left-4 top-1/2 transform -translate-y-1/2 p-2 rounded-lg hover:bg-input-bg transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6 text-text-secondary hover:text-text-white" />
+        </button>
+        
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
+          <div className="flex items-center space-x-3">
+            <Image 
+              src="/ArchieLogo.png" 
+              alt="Archie.Money Logo" 
+              width={32} 
+              height={32}
+              className="rounded-lg"
+            />
+            <h1 className="text-2xl font-bold text-text-white">Archie's analysis</h1>
+          </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-8">
+      <div className="max-w-7xl mx-auto p-4 space-y-4">
         {/* High-Interest Debt Banner */}
         {inputs.highInterestDebt && (
-          <div className="card bg-dark-red p-4 border border-error-red">
+          <div className="modern-card bg-dark-red p-4 border border-error-red">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-error-red rounded-full flex items-center justify-center">
                 <span className="text-white font-bold">!</span>
@@ -76,50 +137,96 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-text-secondary">Projected Nest-Egg</h3>
-              <TrendingUp className="w-5 h-5 text-primary-blue" />
-            </div>
-            <p className="text-3xl font-bold text-text-white mb-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="modern-card p-4">
+            <h2 className="text-xl font-semibold text-text-white mb-1">Projected Nest-Egg</h2>
+            <p className="text-xs text-text-secondary mb-3">At age {inputs.retirementAge}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#3B82F6' }}>
               {formatCurrency(projection.totalRetirementBalance)}
             </p>
-            <p className="text-xs text-text-secondary">At age {inputs.retirementAge}</p>
+            {yearsUntilRetirement > 0 && (
+              <p className="text-sm text-gray-400 italic">
+                ≈ {formatCurrency(presentValueNestEgg)} in today's dollars
+              </p>
+            )}
           </div>
 
-          <div className="card p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-text-secondary">Retirement Income</h3>
-              <TrendingUp className="w-5 h-5 text-primary-blue" />
-            </div>
-            <p className="text-3xl font-bold text-text-white mb-1">
+          <div className="modern-card p-4">
+            <h2 className="text-xl font-semibold text-text-white mb-1">Retirement Income</h2>
+            <p className="text-xs text-text-secondary mb-3">4% Rule</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#3B82F6' }}>
               {formatCurrency(projection.monthlyWithdrawalAfterTax)}<span className="text-base text-text-secondary">/month</span>
             </p>
-            <p className="text-xs text-text-secondary">(4% Rule)</p>
+            {yearsUntilRetirement > 0 && (
+              <p className="text-sm text-gray-400 italic">
+                ≈ {formatCurrency(presentValueMonthlyIncome)}/month in today's dollars
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Main Column - Charts and Analysis */}
-          <div className="xl:col-span-2 space-y-6">
-            {/* Savings Rate Gauge */}
-            <div className="card p-6">
-              <h2 className="text-xl font-semibold text-text-white mb-6">Current Savings Analysis</h2>
-              <SavingsGauge savingsRate={projection.currentSavingsRate} />
-              
-              <div className="mt-6 p-4 bg-input-bg rounded-lg">
-                <p className="text-text-primary text-sm">
-                  You currently save {formatPercentage(projection.currentSavingsRate)} of your take-home pay. 
-                  Financial advisers often recommend saving ≥ 15% – 20% if you want to retire comfortably.
-                </p>
+        {/* Projection Chart */}
+        {inputs.currentAge < inputs.retirementAge && (
+          <div className="modern-card p-4">
+            <h2 className="text-xl font-semibold text-text-white mb-4">Savings Trajectory</h2>
+            
+            <div className="h-64 flex justify-center">
+              <div className="w-full max-w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={projectionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <XAxis 
+                    dataKey="age" 
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    axisLine={{ stroke: '#374151' }}
+                    tickLine={{ stroke: '#374151' }}
+                    interval="preserveStartEnd"
+                    domain={['dataMin', 'dataMax']}
+                    type="number"
+                    scale="linear"
+                    tickFormatter={(value) => {
+                      // Show labels at 5-year intervals
+                      if (value % 5 === 0 || value === inputs.currentAge || value === inputs.retirementAge) {
+                        return value.toString()
+                      }
+                      return ''
+                    }}
+                  />
+                  <YAxis 
+                    tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                    axisLine={{ stroke: '#374151' }}
+                    tickLine={{ stroke: '#374151' }}
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) {
+                        return `$${(value / 1000000).toFixed(1)}M`
+                      } else if (value >= 1000) {
+                        return `$${(value / 1000).toFixed(0)}K`
+                      }
+                      return `$${value}`
+                    }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="balance" 
+                    stroke="#3B82F6" 
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: '#3B82F6' }}
+                  />
+                                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
+          </div>
+        )}
 
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          {/* Main Column - Analysis */}
+          <div className="xl:col-span-2 space-y-4">
             {/* Breakdown */}
-            <div className="card p-6">
-              <h2 className="text-xl font-semibold text-text-white mb-6">Retirement Projection Breakdown</h2>
+            <div className="modern-card p-4">
+              <h2 className="text-xl font-semibold text-text-white mb-4">Retirement Projection Breakdown</h2>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-border-color">
@@ -151,10 +258,10 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
           </div>
 
           {/* Sidebar - What-If & Quick Actions */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* What-If Scenario */}
-            <div className="card p-6">
-              <h2 className="text-xl font-semibold text-text-white mb-6">Investment Boost Impact</h2>
+            <div className="modern-card p-4">
+              <h2 className="text-xl font-semibold text-text-white mb-4">Investment Boost Impact</h2>
               
               <div className="space-y-4">
                 <div>
@@ -166,10 +273,10 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
                     <input
                       type="number"
                       inputMode="numeric"
-                      value={additionalInvestment}
-                      onChange={(e) => setAdditionalInvestment(Number(e.target.value))}
+                      value={additionalInvestment || ''}
+                      onChange={(e) => setAdditionalInvestment(Number(e.target.value) || 0)}
                       className="input-field w-full pl-8"
-                      placeholder="100"
+                      placeholder={defaultAdditionalInvestment.toString()}
                     />
                     <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text-secondary">/mo</span>
                   </div>
@@ -192,14 +299,28 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
         </div>
 
         {/* Action-Oriented Expandable Sections */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-text-white">Want to learn more about how to act on your finances?</h2>
+        <div className="space-y-3">
+          <div className="modern-card overflow-hidden">
+            <button
+              onClick={() => setShowEducationalContent(!showEducationalContent)}
+              className="w-full p-6 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
+            >
+              <h3 className="text-lg font-semibold text-text-white">Want to learn more about your finances?</h3>
+              {showEducationalContent ? (
+                <ChevronUp className="w-5 h-5 text-text-secondary" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-text-secondary" />
+              )}
+            </button>
+          </div>
           
+          {showEducationalContent && (
+            <div className="space-y-3">
           {/* Retirement Account Setup Strategy */}
-          <div className="card overflow-hidden">
+          <div className="modern-card overflow-hidden">
             <button
               onClick={() => toggleAccordion('retirement-setup')}
-              className="w-full p-6 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
             >
               <h3 className="text-lg font-semibold text-text-white">Recommended account set up strategy for retirement</h3>
               {expandedAccordion === 'retirement-setup' ? (
@@ -210,7 +331,7 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
             </button>
             
             {expandedAccordion === 'retirement-setup' && (
-              <div className="px-6 pb-6 bg-input-bg">
+              <div className="px-4 pb-4 bg-input-bg">
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
                     <div className="w-6 h-6 bg-primary-blue rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
@@ -241,10 +362,10 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
           </div>
 
           {/* Emergency Fund */}
-          <div className="card overflow-hidden">
+          <div className="modern-card overflow-hidden">
             <button
               onClick={() => toggleAccordion('emergency-fund')}
-              className="w-full p-6 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
             >
               <h3 className="text-lg font-semibold text-text-white">Want to build your emergency fund?</h3>
               {expandedAccordion === 'emergency-fund' ? (
@@ -255,14 +376,23 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
             </button>
             
             {expandedAccordion === 'emergency-fund' && (
-              <div className="px-6 pb-6 bg-input-bg">
+              <div className="px-4 pb-4 bg-input-bg">
                 <p className="text-text-primary mb-4">
                   Keep 3-6 months of expenses in a high-yield savings account for emergencies. These accounts offer much better rates than traditional banks:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {HYSA_ACCOUNTS.map((account) => (
-                    <div key={account.name} className="card p-4">
-                      <h4 className="font-semibold text-text-white mb-2">{account.name}</h4>
+                    <div key={account.name} className="modern-card p-4">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Image 
+                          src={account.logo} 
+                          alt={`${account.name} logo`} 
+                          width={32} 
+                          height={32}
+                          className="rounded-lg"
+                        />
+                        <h4 className="font-semibold text-text-white">{account.name}</h4>
+                      </div>
                       <p className="text-2xl font-bold text-primary-blue mb-2">{account.apy}% APY</p>
                       <ul className="text-sm text-text-secondary mb-4 space-y-1">
                         {account.features.map((feature, index) => (
@@ -294,10 +424,10 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
           </div>
 
           {/* Investing Platforms */}
-          <div className="card overflow-hidden">
+          <div className="modern-card overflow-hidden">
             <button
               onClick={() => toggleAccordion('investing-platforms')}
-              className="w-full p-6 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
             >
               <h3 className="text-lg font-semibold text-text-white">Want to learn where to invest?</h3>
               {expandedAccordion === 'investing-platforms' ? (
@@ -308,14 +438,23 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
             </button>
             
             {expandedAccordion === 'investing-platforms' && (
-              <div className="px-6 pb-6 bg-input-bg">
+              <div className="px-4 pb-4 bg-input-bg">
                 <p className="text-text-primary mb-4">
                   Choose a low-cost brokerage platform for your investment accounts. These platforms offer commission-free trading and low fees:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {BROKERAGE_PLATFORMS.map((platform) => (
-                    <div key={platform.name} className="card p-4">
-                      <h4 className="font-semibold text-text-white mb-2">{platform.name}</h4>
+                    <div key={platform.name} className="modern-card p-4">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Image 
+                          src={platform.logo} 
+                          alt={`${platform.name} logo`} 
+                          width={32} 
+                          height={32}
+                          className="rounded-lg"
+                        />
+                        <h4 className="font-semibold text-text-white">{platform.name}</h4>
+                      </div>
                       <p className="text-sm text-text-secondary mb-3">{platform.description}</p>
                       <ul className="text-sm text-text-secondary mb-4 space-y-1">
                         {platform.features.map((feature, index) => (
@@ -347,10 +486,10 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
           </div>
 
           {/* Budget Management */}
-          <div className="card overflow-hidden">
+          <div className="modern-card overflow-hidden">
             <button
               onClick={() => toggleAccordion('budget-management')}
-              className="w-full p-6 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
             >
               <h3 className="text-lg font-semibold text-text-white">Want to manage your budget?</h3>
               {expandedAccordion === 'budget-management' ? (
@@ -361,14 +500,23 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
             </button>
             
             {expandedAccordion === 'budget-management' && (
-              <div className="px-6 pb-6 bg-input-bg">
+              <div className="px-4 pb-4 bg-input-bg">
                 <p className="text-text-primary mb-4">
                   Track your spending and manage your budget with these popular personal finance apps:
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {PFM_APPS.map((app) => (
-                    <div key={app.name} className="card p-4">
-                      <h4 className="font-semibold text-text-white mb-2">{app.name}</h4>
+                    <div key={app.name} className="modern-card p-4">
+                      <div className="flex items-center space-x-3 mb-3">
+                        <Image 
+                          src={app.logo} 
+                          alt={`${app.name} logo`} 
+                          width={32} 
+                          height={32}
+                          className="rounded-lg"
+                        />
+                        <h4 className="font-semibold text-text-white">{app.name}</h4>
+                      </div>
                       <p className="text-sm text-text-secondary mb-3">{app.description}</p>
                       <ul className="text-sm text-text-secondary mb-4 space-y-1">
                         {app.features.map((feature, index) => (
@@ -398,6 +546,8 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
               </div>
             )}
           </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

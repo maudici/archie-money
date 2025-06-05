@@ -28,7 +28,7 @@ interface OnboardingStep {
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'currentAge',
-    title: 'What is your current age?',
+    title: 'How old are you?',
     inputType: 'slider',
     min: 20,
     max: 75,
@@ -46,8 +46,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'monthlyTakeHome',
-    title: 'How much do you take home per month after taxes?',
-    tooltip: 'Enter your net pay (after federal, state, and payroll taxes). Taxes will be estimated later.',
+    title: 'What is your take home pay per month?',
     inputType: 'slider',
     min: 0,
     max: 20000,
@@ -57,8 +56,8 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'monthlyExpenses',
-    title: 'Roughly how much do you spend each month?',
-    tooltip: 'Include rent/mortgage, utilities, groceries, transportation, subscriptions, entertainment, etc.',
+    title: 'What is your average monthly spending?',
+    tooltip: 'Include rent/mortgage, utilities, groceries, transportation, etc.',
     inputType: 'slider',
     min: 0,
     max: 20000,
@@ -69,7 +68,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   {
     id: 'monthlyInvestments',
     title: 'How much do you invest per month?',
-    tooltip: 'Include any recurring transfers to brokerage or retirement accounts (pre-tax 401(k), Roth IRA, etc.).',
+    tooltip: 'For 401(k), IRA, brokerage, etc.',
     inputType: 'slider',
     min: 0,
     max: 10000,
@@ -79,8 +78,8 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'currentSavings',
-    title: 'How much do you already have invested toward retirement?',
-    tooltip: 'e.g., balances in 401(k), Roth IRA, traditional IRAs, and taxable accounts you earmark for retirement.',
+    title: 'Your total retirement savings to date?',
+    tooltip: 'Include 401k balances, IRAs and brokerage accounts.',
     inputType: 'slider',
     min: 0,
     max: 2000000,
@@ -89,13 +88,13 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     id: 'highInterestDebt',
-    title: 'Do you currently have any debt with an interest rate above 6% APR?',
+    title: 'Do you have any high interest debt (6%+ APR)?',
     tooltip: 'Includes credit card, student loans, car loan, etc.',
     inputType: 'toggle'
   },
   {
     id: 'retirementState',
-    title: 'Which state do you expect to retire in?',
+    title: 'Where do you plan to retire (which state)?',
     inputType: 'dropdown',
     options: Object.keys(STATE_EFFECTIVE_TAX_RATES)
   }
@@ -106,6 +105,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [inputs, setInputs] = useState<UserInputs>(DEFAULT_VALUES)
   const [showResults, setShowResults] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
+  const [isTransitioning, setIsTransitioning] = useState(false)
 
   const step = ONBOARDING_STEPS[currentStep]
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1
@@ -130,12 +130,20 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (isLastStep) {
       setShowResults(true)
     } else {
-      setCurrentStep(prev => prev + 1)
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setCurrentStep(prev => prev + 1)
+        setIsTransitioning(false)
+      }, 150)
     }
   }
 
   const prevStep = () => {
-    setCurrentStep(prev => Math.max(0, prev - 1))
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentStep(prev => Math.max(0, prev - 1))
+      setIsTransitioning(false)
+    }, 150)
     setErrors([])
   }
 
@@ -162,98 +170,117 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           <ArrowLeft className="w-6 h-6 text-text-secondary hover:text-text-white" />
         </button>
         
-        <span className="text-sm text-text-secondary">
-          Step {currentStep + 1} of {ONBOARDING_STEPS.length}
-        </span>
+        {/* Dot Indicators */}
+        <div className="flex space-x-2">
+          {ONBOARDING_STEPS.map((_, index) => (
+            <div
+              key={index}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentStep 
+                  ? 'bg-primary-blue scale-125' 
+                  : index < currentStep 
+                    ? 'bg-primary-blue opacity-60' 
+                    : 'bg-input-bg'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Spacer for balance */}
+        <div className="w-10 h-10" />
       </div>
 
-      {/* Question Card */}
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
-          <div className="card p-8 slide-in-right backdrop-blur-glass">
-            {/* Question */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-text-white mb-4">
-                {step.title}
-              </h1>
-              {step.subtitle && (
-                <p className="text-lg text-text-secondary mb-4">{step.subtitle}</p>
-              )}
-              {step.tooltip && (
-                <div className="flex items-center justify-center space-x-2 text-text-muted">
-                  <Info className="w-4 h-4" />
-                  <p className="text-sm">{step.tooltip}</p>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col justify-between p-4 min-h-0">
+        <div className="flex-1 flex items-start justify-center pt-8">
+          <div className="w-full max-w-2xl">
+            <div className={`modern-card px-8 py-6 transition-all duration-300 ${isTransitioning ? 'step-exit' : 'step-enter'}`}>
+              {/* Question */}
+              <div className="text-center mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold text-text-white mb-4">
+                  {step.title}
+                </h1>
+                {step.subtitle && (
+                  <p className="text-lg text-text-secondary mb-4">{step.subtitle}</p>
+                )}
+                {step.tooltip && (
+                  <p className="text-sm text-text-muted">
+                    {step.tooltip}
+                  </p>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="mb-2">
+                {step.inputType === 'slider' && (
+                  <SliderInput
+                    value={inputs[step.id] as number}
+                    onChange={(value) => updateInput(step.id, value)}
+                    min={step.min || 0}
+                    max={step.max || 100}
+                    step={step.step || 1}
+                    prefix={step.prefix}
+                    suffix={step.suffix}
+                    stepIndex={currentStep}
+                  />
+                )}
+                
+                {step.inputType === 'toggle' && (
+                  <ToggleInput
+                    value={inputs[step.id] as boolean}
+                    onChange={(value) => updateInput(step.id, value)}
+                  />
+                )}
+                
+                {step.inputType === 'dropdown' && (
+                  <DropdownInput
+                    value={inputs[step.id] as string}
+                    onChange={(value) => updateInput(step.id, value)}
+                    options={step.options || []}
+                  />
+                )}
+              </div>
+
+              {/* Errors */}
+              {errors.length > 0 && (
+                <div className="mt-4">
+                  {errors.map((error, index) => (
+                    <p key={index} className="text-error-red text-sm text-center">
+                      {error}
+                    </p>
+                  ))}
                 </div>
               )}
             </div>
-
-            {/* Input */}
-            <div className="mb-8">
-              {step.inputType === 'slider' && (
-                <SliderInput
-                  value={inputs[step.id] as number}
-                  onChange={(value) => updateInput(step.id, value)}
-                  min={step.min || 0}
-                  max={step.max || 100}
-                  step={step.step || 1}
-                  prefix={step.prefix}
-                  suffix={step.suffix}
-                />
-              )}
-              
-              {step.inputType === 'toggle' && (
-                <ToggleInput
-                  value={inputs[step.id] as boolean}
-                  onChange={(value) => updateInput(step.id, value)}
-                />
-              )}
-              
-              {step.inputType === 'dropdown' && (
-                <DropdownInput
-                  value={inputs[step.id] as string}
-                  onChange={(value) => updateInput(step.id, value)}
-                  options={step.options || []}
-                />
-              )}
-            </div>
-
-            {/* Errors */}
-            {errors.length > 0 && (
-              <div className="mb-6">
-                {errors.map((error, index) => (
-                  <p key={index} className="text-error-red text-sm text-center">
-                    {error}
-                  </p>
-                ))}
-              </div>
-            )}
-
-            {/* Navigation */}
-            <div className="flex justify-between">
-              {/* Back Button - only show after first step */}
-              {currentStep > 0 && (
-                <button
-                  onClick={prevStep}
-                  className="btn-secondary flex items-center space-x-2"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span>Back</span>
-                </button>
-              )}
-              
-              {/* Spacer when no back button */}
-              {currentStep === 0 && <div />}
-              
-              {/* Next Button */}
-              <button
-                onClick={nextStep}
-                className="btn-primary flex items-center space-x-2"
-              >
-                <span>{isLastStep ? 'See Results' : 'Next'}</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
           </div>
+        </div>
+
+        {/* Navigation - Fixed at bottom */}
+        <div className="flex justify-between max-w-2xl mx-auto w-full px-4 pb-8">
+          {/* Back Button - only show after first step */}
+          {currentStep > 0 && (
+            <button
+              onClick={prevStep}
+              disabled={isTransitioning}
+              className="btn-secondary flex items-center space-x-2 disabled:opacity-50"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span>Back</span>
+            </button>
+          )}
+          
+          {/* Spacer when no back button */}
+          {currentStep === 0 && <div />}
+          
+          {/* Next Button */}
+          <button
+            onClick={nextStep}
+            disabled={isTransitioning}
+            className="btn-primary flex items-center space-x-2 disabled:opacity-50"
+          >
+            <span>{isLastStep ? 'Results' : 'Next'}</span>
+            <ArrowRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>
@@ -268,7 +295,8 @@ function SliderInput({
   max, 
   step, 
   prefix = '', 
-  suffix = '' 
+  suffix = '',
+  stepIndex
 }: {
   value: number
   onChange: (value: number) => void
@@ -277,10 +305,14 @@ function SliderInput({
   step: number
   prefix?: string
   suffix?: string
+  stepIndex: number
 }) {
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat('en-US').format(num)
   }
+
+  // Apply different slider heights based on question group
+  const sliderClass = stepIndex <= 2 ? 'slider-basic' : 'slider-detailed'
 
   return (
     <div className="space-y-6">
@@ -299,7 +331,7 @@ function SliderInput({
         step={step}
         value={Math.min(value, max)}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full"
+        className={`w-full ${sliderClass}`}
       />
 
       {/* Manual Input */}
