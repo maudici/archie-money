@@ -67,11 +67,14 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function Dashboard({ inputs, onBack }: DashboardProps) {
-  // Use $100 as default additional investment
-  const defaultAdditionalInvestment = 100
+  // Calculate default additional investment based on available income
+  const availableIncome = inputs.monthlyTakeHome - inputs.monthlyExpenses
+  const defaultAdditionalInvestment = availableIncome > 400 ? Math.round(availableIncome * 0.25) : 100
+  
   const [additionalInvestment, setAdditionalInvestment] = useState(defaultAdditionalInvestment)
-  const [expandedAccordion, setExpandedAccordion] = useState<string | null>(null)
+  const [expandedAccordions, setExpandedAccordions] = useState<Set<string>>(new Set())
   const [showEducationalContent, setShowEducationalContent] = useState(false)
+  const [showInvestmentDetails, setShowInvestmentDetails] = useState(false)
   
   // For handling comma-formatted input
   const [investmentInputValue, setInvestmentInputValue] = useState('')
@@ -125,9 +128,18 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
   }
   const enhancedProjection = calculateRetirementProjection(enhancedInputs)
   const additionalMonthlyIncome = enhancedProjection.monthlyWithdrawalAfterTax - projection.monthlyWithdrawalAfterTax
+  const additionalNestEgg = enhancedProjection.totalRetirementBalance - projection.totalRetirementBalance
 
   const toggleAccordion = (id: string) => {
-    setExpandedAccordion(expandedAccordion === id ? null : id)
+    setExpandedAccordions(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return newSet
+    })
   }
 
   return (
@@ -261,9 +273,9 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {/* Main Column - Analysis */}
           <div className="xl:col-span-2 space-y-4">
-            {/* Breakdown */}
+            {/* Contribution Growth Breakdown */}
             <div className="modern-card p-4">
-              <h2 className="text-xl font-semibold text-text-white mb-4">Retirement Breakdown</h2>
+              <h2 className="text-xl font-semibold text-text-white mb-4">Contribution Growth Breakdown</h2>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-border-color">
@@ -287,9 +299,9 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
               </div>
             </div>
 
-            {/* Monthly Projection Breakdown */}
+            {/* Monthly Withdrawal Breakdown */}
             <div className="modern-card p-4">
-                             <h2 className="text-xl font-semibold text-text-white mb-4">Monthly Breakdown</h2>
+              <h2 className="text-xl font-semibold text-text-white mb-4">Monthly Withdrawal Breakdown</h2>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center py-2 border-b border-border-color">
@@ -318,7 +330,7 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
           <div className="space-y-4">
             {/* What-If Scenario */}
             <div className="modern-card p-4">
-              <h2 className="text-xl font-semibold text-text-white mb-4">Investment Boost Impact</h2>
+              <h2 className="text-xl font-semibold text-text-white mb-4">What if you invested more?</h2>
               
               <div className="space-y-4">
                 <div>
@@ -343,15 +355,55 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
 
                 <div className="p-4 bg-input-bg rounded-lg">
                   <p className="text-text-white font-semibold mb-2">
-                    Extra retirement income:
+                    Extra nest egg:
                   </p>
                   <p className="text-2xl font-bold text-primary-blue mb-1">
-                    +{formatCurrency(additionalMonthlyIncome)}/month
+                    +{formatCurrency(additionalNestEgg)}
                   </p>
                   <p className="text-text-secondary text-sm">
                     By investing {formatCurrency(additionalInvestment)} more monthly
                   </p>
                 </div>
+
+                <button
+                  onClick={() => setShowInvestmentDetails(!showInvestmentDetails)}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <span>See how it grows</span>
+                  {showInvestmentDetails ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+
+                {showInvestmentDetails && (
+                  <div className="space-y-4 pt-4 border-t border-border-color">
+                    <div className="p-4 bg-input-bg rounded-lg">
+                      <p className="text-text-white font-semibold mb-2">
+                        New Total Nest Egg:
+                      </p>
+                      <p className="text-2xl font-bold text-primary-blue mb-1">
+                        {formatCurrency(enhancedProjection.totalRetirementBalance)}
+                      </p>
+                      <p className="text-text-secondary text-sm">
+                        +{formatCurrency(additionalNestEgg)} more than your current plan
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-input-bg rounded-lg">
+                      <p className="text-text-white font-semibold mb-2">
+                        New Gross Monthly Withdrawal:
+                      </p>
+                      <p className="text-2xl font-bold text-primary-blue mb-1">
+                        {formatCurrency(enhancedProjection.monthlyWithdrawalBeforeTax)}/month
+                      </p>
+                      <p className="text-text-secondary text-sm">
+                        +{formatCurrency(enhancedProjection.monthlyWithdrawalBeforeTax - projection.monthlyWithdrawalBeforeTax)}/m more than your current plan
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -364,249 +416,205 @@ export default function Dashboard({ inputs, onBack }: DashboardProps) {
               onClick={() => setShowEducationalContent(!showEducationalContent)}
               className="w-full p-6 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
             >
-              <h3 className="text-lg font-semibold text-text-white">Want to learn more about your finances?</h3>
+              <h3 className="text-lg font-semibold text-text-white">Learn more about your finances</h3>
               {showEducationalContent ? (
                 <ChevronUp className="w-5 h-5 text-text-secondary" />
               ) : (
                 <ChevronDown className="w-5 h-5 text-text-secondary" />
               )}
             </button>
-          </div>
-          
-          {showEducationalContent && (
-            <div className="space-y-3">
-          {/* Retirement Account Setup Strategy */}
-          <div className="modern-card overflow-hidden">
-            <button
-              onClick={() => toggleAccordion('retirement-setup')}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
-            >
-              <h3 className="text-lg font-semibold text-text-white">Recommended account set up strategy for retirement</h3>
-              {expandedAccordion === 'retirement-setup' ? (
-                <ChevronUp className="w-5 h-5 text-text-secondary" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-text-secondary" />
-              )}
-            </button>
             
-            {expandedAccordion === 'retirement-setup' && (
-              <div className="px-4 pb-4 bg-input-bg">
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-primary-blue rounded-full flex items-center justify-center text-white text-sm font-bold">1</div>
-                    <div>
-                      <h4 className="font-semibold text-text-white">401(k) Employer Match</h4>
-                      <p className="text-sm text-text-secondary">Contribute at least enough to get your company match—it's free money. This should be your first priority.</p>
-                    </div>
-                  </div>
+            {showEducationalContent && (
+              <div className="px-6 pb-6 space-y-4">
+                {/* Emergency Fund */}
+                <button
+                  onClick={() => toggleAccordion('emergency-fund')}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <span>Build emergency fund</span>
+                  {expandedAccordions.has('emergency-fund') ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
                   
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-success-green rounded-full flex items-center justify-center text-white text-sm font-bold">2</div>
-                    <div>
-                      <h4 className="font-semibold text-text-white">Roth IRA</h4>
-                      <p className="text-sm text-text-secondary">If eligible, fund a Roth IRA for tax-free growth. Great for younger investors and those expecting higher income in retirement.</p>
+                {expandedAccordions.has('emergency-fund') && (
+                  <div className="space-y-4 pt-4">
+                    <p className="text-text-primary mb-4">
+                      Keep 3-6 months of expenses in a high-yield savings account for emergencies. These accounts offer much better rates than traditional banks:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {HYSA_ACCOUNTS.map((account) => (
+                        <div key={account.name} className="modern-card p-4">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <Image 
+                              src={account.logo} 
+                              alt={`${account.name} logo`} 
+                              width={32} 
+                              height={32}
+                              className="rounded-lg"
+                            />
+                            <h5 className="font-semibold text-text-white">{account.name}</h5>
+                          </div>
+                          <p className="text-2xl font-bold text-primary-blue mb-2">{account.apy}% APY</p>
+                          <ul className="text-sm text-text-secondary mb-4 space-y-1">
+                            {account.features.map((feature, index) => (
+                              <li key={index}>• {feature}</li>
+                            ))}
+                          </ul>
+                          <a
+                            href={account.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary w-full flex items-center justify-center space-x-2"
+                            onClick={() => {
+                              // GA4 tracking
+                              if (typeof window !== 'undefined' && (window as any).gtag) {
+                                (window as any).gtag('event', 'click_affiliate', {
+                                  provider: account.name
+                                })
+                              }
+                            }}
+                          >
+                            <span>
+                              {account.name.includes('Ally') ? 'Ally Bank' :
+                               account.name.includes('Marcus') ? 'Marcus' :
+                               account.name.includes('Capital One') ? 'Capital One' :
+                               account.name}
+                            </span>
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-secondary-orange rounded-full flex items-center justify-center text-white text-sm font-bold">3</div>
-                    <div>
-                      <h4 className="font-semibold text-text-white">Max Out 401(k)</h4>
-                      <p className="text-sm text-text-secondary">After getting the match and funding your Roth IRA, consider maxing out your 401(k) for additional tax advantages.</p>
+                )}
+
+                {/* Investing Platforms */}
+                <button
+                  onClick={() => toggleAccordion('investing-platforms')}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <span>Learn where to invest</span>
+                  {expandedAccordions.has('investing-platforms') ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                
+                {expandedAccordions.has('investing-platforms') && (
+                  <div className="space-y-4 pt-4">
+                    <p className="text-text-primary mb-4">
+                      Choose a low-cost brokerage platform for your investment accounts. These platforms offer commission-free trading and low fees:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {BROKERAGE_PLATFORMS.map((platform) => (
+                        <div key={platform.name} className="modern-card p-4">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <Image 
+                              src={platform.logo} 
+                              alt={`${platform.name} logo`} 
+                              width={32} 
+                              height={32}
+                              className="rounded-lg"
+                            />
+                            <h5 className="font-semibold text-text-white">{platform.name}</h5>
+                          </div>
+                          <p className="text-sm text-text-secondary mb-3">{platform.description}</p>
+                          <ul className="text-sm text-text-secondary mb-4 space-y-1">
+                            {platform.features.map((feature, index) => (
+                              <li key={index}>• {feature}</li>
+                            ))}
+                          </ul>
+                          <a
+                            href={platform.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary w-full flex items-center justify-center space-x-2"
+                            onClick={() => {
+                              // GA4 tracking
+                              if (typeof window !== 'undefined' && (window as any).gtag) {
+                                (window as any).gtag('event', 'click_affiliate', {
+                                  provider: platform.name
+                                })
+                              }
+                            }}
+                          >
+                            <span>{platform.name}</span>
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-          </div>
+                )}
 
-          {/* Emergency Fund */}
-          <div className="modern-card overflow-hidden">
-            <button
-              onClick={() => toggleAccordion('emergency-fund')}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
-            >
-              <h3 className="text-lg font-semibold text-text-white">Want to build your emergency fund?</h3>
-              {expandedAccordion === 'emergency-fund' ? (
-                <ChevronUp className="w-5 h-5 text-text-secondary" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-text-secondary" />
-              )}
-            </button>
-            
-            {expandedAccordion === 'emergency-fund' && (
-              <div className="px-4 pb-4 bg-input-bg">
-                <p className="text-text-primary mb-4">
-                  Keep 3-6 months of expenses in a high-yield savings account for emergencies. These accounts offer much better rates than traditional banks:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {HYSA_ACCOUNTS.map((account) => (
-                    <div key={account.name} className="modern-card p-4">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Image 
-                          src={account.logo} 
-                          alt={`${account.name} logo`} 
-                          width={32} 
-                          height={32}
-                          className="rounded-lg"
-                        />
-                        <h4 className="font-semibold text-text-white">{account.name}</h4>
-                      </div>
-                      <p className="text-2xl font-bold text-primary-blue mb-2">{account.apy}% APY</p>
-                      <ul className="text-sm text-text-secondary mb-4 space-y-1">
-                        {account.features.map((feature, index) => (
-                          <li key={index}>• {feature}</li>
-                        ))}
-                      </ul>
-                      <a
-                        href={account.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary w-full flex items-center justify-center space-x-2"
-                        onClick={() => {
-                          // GA4 tracking
-                          if (typeof window !== 'undefined' && (window as any).gtag) {
-                            (window as any).gtag('event', 'click_affiliate', {
-                              provider: account.name
-                            })
-                          }
-                        }}
-                      >
-                        <span>Open Account</span>
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+                {/* Budget Management */}
+                <button
+                  onClick={() => toggleAccordion('budget-management')}
+                  className="w-full btn-secondary flex items-center justify-center space-x-2"
+                >
+                  <span>Manage your budget</span>
+                  {expandedAccordions.has('budget-management') ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </button>
+                
+                {expandedAccordions.has('budget-management') && (
+                  <div className="space-y-4 pt-4">
+                    <p className="text-text-primary mb-4">
+                      Track your spending and manage your budget with these popular personal finance apps:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {PFM_APPS.map((app) => (
+                        <div key={app.name} className="modern-card p-4">
+                          <div className="flex items-center space-x-3 mb-3">
+                            <Image 
+                              src={app.logo} 
+                              alt={`${app.name} logo`} 
+                              width={32} 
+                              height={32}
+                              className="rounded-lg"
+                            />
+                            <h5 className="font-semibold text-text-white">{app.name}</h5>
+                          </div>
+                          <p className="text-sm text-text-secondary mb-3">{app.description}</p>
+                          <ul className="text-sm text-text-secondary mb-4 space-y-1">
+                            {app.features.map((feature, index) => (
+                              <li key={index}>• {feature}</li>
+                            ))}
+                          </ul>
+                          <a
+                            href={app.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary w-full flex items-center justify-center space-x-2"
+                            onClick={() => {
+                              // GA4 tracking
+                              if (typeof window !== 'undefined' && (window as any).gtag) {
+                                (window as any).gtag('event', 'click_affiliate', {
+                                  provider: app.name
+                                })
+                              }
+                            }}
+                          >
+                            <span>
+                              {app.name === 'You Need A Budget (YNAB)' ? 'YNAB' : app.name}
+                            </span>
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
-
-          {/* Investing Platforms */}
-          <div className="modern-card overflow-hidden">
-            <button
-              onClick={() => toggleAccordion('investing-platforms')}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
-            >
-              <h3 className="text-lg font-semibold text-text-white">Want to learn where to invest?</h3>
-              {expandedAccordion === 'investing-platforms' ? (
-                <ChevronUp className="w-5 h-5 text-text-secondary" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-text-secondary" />
-              )}
-            </button>
-            
-            {expandedAccordion === 'investing-platforms' && (
-              <div className="px-4 pb-4 bg-input-bg">
-                <p className="text-text-primary mb-4">
-                  Choose a low-cost brokerage platform for your investment accounts. These platforms offer commission-free trading and low fees:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {BROKERAGE_PLATFORMS.map((platform) => (
-                    <div key={platform.name} className="modern-card p-4">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Image 
-                          src={platform.logo} 
-                          alt={`${platform.name} logo`} 
-                          width={32} 
-                          height={32}
-                          className="rounded-lg"
-                        />
-                        <h4 className="font-semibold text-text-white">{platform.name}</h4>
-                      </div>
-                      <p className="text-sm text-text-secondary mb-3">{platform.description}</p>
-                      <ul className="text-sm text-text-secondary mb-4 space-y-1">
-                        {platform.features.map((feature, index) => (
-                          <li key={index}>• {feature}</li>
-                        ))}
-                      </ul>
-                      <a
-                        href={platform.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary w-full flex items-center justify-center space-x-2"
-                        onClick={() => {
-                          // GA4 tracking
-                          if (typeof window !== 'undefined' && (window as any).gtag) {
-                            (window as any).gtag('event', 'click_affiliate', {
-                              provider: platform.name
-                            })
-                          }
-                        }}
-                      >
-                        <span>Learn More</span>
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Budget Management */}
-          <div className="modern-card overflow-hidden">
-            <button
-              onClick={() => toggleAccordion('budget-management')}
-              className="w-full p-4 text-left flex items-center justify-between hover:bg-input-bg transition-colors"
-            >
-              <h3 className="text-lg font-semibold text-text-white">Want to manage your budget?</h3>
-              {expandedAccordion === 'budget-management' ? (
-                <ChevronUp className="w-5 h-5 text-text-secondary" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-text-secondary" />
-              )}
-            </button>
-            
-            {expandedAccordion === 'budget-management' && (
-              <div className="px-4 pb-4 bg-input-bg">
-                <p className="text-text-primary mb-4">
-                  Track your spending and manage your budget with these popular personal finance apps:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {PFM_APPS.map((app) => (
-                    <div key={app.name} className="modern-card p-4">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Image 
-                          src={app.logo} 
-                          alt={`${app.name} logo`} 
-                          width={32} 
-                          height={32}
-                          className="rounded-lg"
-                        />
-                        <h4 className="font-semibold text-text-white">{app.name}</h4>
-                      </div>
-                      <p className="text-sm text-text-secondary mb-3">{app.description}</p>
-                      <ul className="text-sm text-text-secondary mb-4 space-y-1">
-                        {app.features.map((feature, index) => (
-                          <li key={index}>• {feature}</li>
-                        ))}
-                      </ul>
-                      <a
-                        href={app.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary w-full flex items-center justify-center space-x-2"
-                        onClick={() => {
-                          // GA4 tracking
-                          if (typeof window !== 'undefined' && (window as any).gtag) {
-                            (window as any).gtag('event', 'click_affiliate', {
-                              provider: app.name
-                            })
-                          }
-                        }}
-                      >
-                        <span>Try App</span>
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

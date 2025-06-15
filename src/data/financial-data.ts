@@ -135,7 +135,7 @@ export const BROKERAGE_PLATFORMS = [
 export const PFM_APPS = [
   {
     name: 'Copilot.Money',
-    description: 'Modern, AI-driven PFM with net-worth tracking',
+    description: 'Modern PFM with net-worth tracking',
     features: ['AI insights', 'Net worth tracking', 'Beautiful UI'],
     url: 'https://copilot.money',
     logo: '/icons/copilot.png'
